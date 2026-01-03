@@ -46,10 +46,21 @@ const Practice: React.FC = () => {
   const { token } = useAuth();
   const [searchParams] = useSearchParams();
   const [currentTaskId, setCurrentTaskId] = useState<string>(tasks[0].id);
+  const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  
   const currentTask: PracticeTask = useMemo(
     () => tasks.find(t => t.id === currentTaskId) || tasks[0],
     [currentTaskId]
   );
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(t => {
+      const diffMatch = difficultyFilter === 'all' || t.difficulty === difficultyFilter;
+      const catMatch = categoryFilter === 'all' || t.category === categoryFilter;
+      return diffMatch && catMatch;
+    });
+  }, [difficultyFilter, categoryFilter]);
 
   const [code, setCode] = useState<string>('');
   const [output, setOutput] = useState<string>('');
@@ -99,27 +110,102 @@ const Practice: React.FC = () => {
     localStorage.setItem(LS_CODE_PREFIX + currentTask.id, code);
   }, [code, currentTask.id]);
 
+  const categories = useMemo(() => Array.from(new Set(tasks.map(t => t.category).filter(Boolean))), []);
+
+  const getDifficultyColor = (difficulty?: string) => {
+    switch (difficulty) {
+      case 'easy': return '#10b981';
+      case 'medium': return '#f59e0b';
+      case 'hard': return '#ef4444';
+      default: return '#6b7280';
+    }
+  };
+
+  const getDifficultyLabel = (difficulty?: string) => {
+    switch (difficulty) {
+      case 'easy': return 'Легкий';
+      case 'medium': return 'Средний';
+      case 'hard': return 'Сложный';
+      default: return 'Не указан';
+    }
+  };
+
   const instructions = useMemo(() => (
     <div className="task">
-      <div style={{display:'flex',justifyContent:'space-between',gap:'1rem',alignItems:'center'}}>
-        <h2>{currentTask.title}</h2>
-        <select
-          value={currentTaskId}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrentTaskId(e.target.value)}
-          aria-label="Выбор задачи"
-        >
-          {tasks.map(t => (
-            <option key={t.id} value={t.id}>{t.title}</option>
-          ))}
-        </select>
+      <div style={{display:'flex',justifyContent:'space-between',gap:'1rem',alignItems:'flex-start',flexWrap:'wrap'}}>
+        <div style={{flex:1,minWidth:'250px'}}>
+          <h2>{currentTask.title}</h2>
+          <div style={{display:'flex',gap:'0.5rem',alignItems:'center',marginTop:'0.5rem'}}>
+            <span style={{
+              padding:'0.25rem 0.75rem',
+              borderRadius:'12px',
+              fontSize:'0.85rem',
+              fontWeight:'600',
+              background:getDifficultyColor(currentTask.difficulty),
+              color:'white'
+            }}>
+              {getDifficultyLabel(currentTask.difficulty)}
+            </span>
+            {currentTask.category && (
+              <span style={{
+                padding:'0.25rem 0.75rem',
+                borderRadius:'12px',
+                fontSize:'0.85rem',
+                background:'#e5e7eb',
+                color:'#374151'
+              }}>
+                {currentTask.category}
+              </span>
+            )}
+            {currentTask.timeLimit && (
+              <span style={{fontSize:'0.85rem',color:'#6b7280'}}>
+                ⏱️ {currentTask.timeLimit} мин
+              </span>
+            )}
+          </div>
+        </div>
+        <div style={{display:'flex',gap:'0.5rem',flexDirection:'column',minWidth:'200px'}}>
+          <select
+            value={difficultyFilter}
+            onChange={(e) => setDifficultyFilter(e.target.value)}
+            style={{padding:'0.5rem',borderRadius:'6px',border:'1px solid #d1d5db'}}
+          >
+            <option value="all">Все уровни</option>
+            <option value="easy">Легкие</option>
+            <option value="medium">Средние</option>
+            <option value="hard">Сложные</option>
+          </select>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            style={{padding:'0.5rem',borderRadius:'6px',border:'1px solid #d1d5db'}}
+          >
+            <option value="all">Все категории</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+          <select
+            value={currentTaskId}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrentTaskId(e.target.value)}
+            aria-label="Выбор задачи"
+            style={{padding:'0.5rem',borderRadius:'6px',border:'1px solid #d1d5db'}}
+          >
+            {filteredTasks.map(t => (
+              <option key={t.id} value={t.id}>{t.title}</option>
+            ))}
+          </select>
+        </div>
       </div>
-      <p>{currentTask.description}</p>
+      <p style={{marginTop:'1rem'}}>{currentTask.description}</p>
       <p><b>Экспорт функции:</b> <code>export {'{ ' + currentTask.exportName + ' }'}</code></p>
       <p>
-        Прогресс: {progress[currentTask.id] ?? 0}/{currentTask.tests.length}
+        Прогресс: <strong style={{color:progress[currentTask.id] === currentTask.tests.length ? '#10b981' : '#6b7280'}}>
+          {progress[currentTask.id] ?? 0}/{currentTask.tests.length}
+        </strong>
       </p>
     </div>
-  ), [currentTask, currentTaskId, progress]);
+  ), [currentTask, currentTaskId, progress, difficultyFilter, categoryFilter, filteredTasks, categories]);
 
   const run = () => {
     try {

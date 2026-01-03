@@ -8,6 +8,9 @@ import { useAuth } from './context/AuthContext';
 import Lessons from './pages/Lessons';
 import LessonDetail from './pages/LessonDetail';
 import Profile from './pages/Profile';
+import Dashboard from './pages/Dashboard';
+import Settings from './pages/Settings';
+import { useTheme } from './context/ThemeContext';
 
 // Pages
 const Home = () => (
@@ -35,6 +38,7 @@ const Home = () => (
 
 function App() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const onLogout = () => { logout(); navigate('/'); };
   return (
@@ -43,9 +47,14 @@ function App() {
         <div className="nav-inner">
           <Link to="/" className="logo">CodeTutor</Link>
           <div className="nav-links">
+          <Link to="/">Дашборд</Link>
           <Link to="/lessons">Уроки</Link>
           <Link to="/practice">Практика</Link>
           <Link to="/profile">Профиль</Link>
+          <Link to="/settings">⚙️</Link>
+          <button className="btn ghost" onClick={toggleTheme} title="Переключить тему">
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
           {user ? (
             <>
               <span style={{ marginLeft: '1rem', color: '#666' }}>{user.email}</span>
@@ -63,11 +72,13 @@ function App() {
 
       <main className="main-content">
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/home" element={<Home />} />
           <Route path="/lessons" element={<Lessons />} />
           <Route path="/lessons/:id" element={<LessonDetail />} />
           <Route path="/practice" element={<Practice />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Routes>
